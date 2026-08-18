@@ -58,14 +58,47 @@ class Level1AnalyzeTests(unittest.TestCase):
         )
         self.assertEqual(result["level"], 1)
         self.assertEqual(result["symbol"], "RELIANCE")
+        self.assertTrue(result["analysis_id"].startswith("ita1_"))
+        self.assertIn("fingerprint", result["policy"])
         self.assertEqual(result["market_data"]["source"], "nse_udiff_bhavcopy")
         self.assertTrue(result["market_data"]["authoritative"])
         self.assertEqual(result["regime"]["direction"], "trending_down")
         packet = result["trade_packet"]
+        self.assertEqual(packet["analysis_id"], result["analysis_id"])
+        self.assertEqual(packet["policy"]["id"], result["policy"]["id"])
         self.assertEqual(packet["status"], "watch")
         self.assertEqual(packet["trigger_state"], "waiting")
         self.assertFalse(packet["execution"]["allowed"])
         self.assertIsNotNone(packet["position_sizing"])
+
+    def test_same_evidence_and_policy_produce_same_analysis_id(self):
+        kwargs = dict(
+            symbol="RELIANCE",
+            provider=FakeHistoryProvider("down"),
+            sessions=80,
+            as_of="2026-08-18",
+            capital=500000,
+        )
+        first = analyze_symbol(**kwargs)
+        second = analyze_symbol(**kwargs)
+        self.assertEqual(first["analysis_id"], second["analysis_id"])
+
+    def test_policy_change_can_change_decision_and_analysis_id(self):
+        default = analyze_symbol(
+            "RELIANCE",
+            provider=FakeHistoryProvider("down"),
+            as_of="2026-08-18",
+        )
+        strict = analyze_symbol(
+            "RELIANCE",
+            provider=FakeHistoryProvider("down"),
+            as_of="2026-08-18",
+            policy={"name": "strict-volume", "version": "1", "min_volume_ratio": 2.0},
+        )
+        self.assertEqual(default["trade_packet"]["status"], "watch")
+        self.assertEqual(strict["trade_packet"]["status"], "no_trade")
+        self.assertNotEqual(default["analysis_id"], strict["analysis_id"])
+        self.assertIn("policy minimum", strict["trade_packet"]["reasons_not_to_trade"][0])
 
     def test_overextended_uptrend_can_return_no_trade(self):
         result = analyze_symbol(

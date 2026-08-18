@@ -6,6 +6,8 @@
   "required": ["schema_version", "symbol", "status", "horizon", "reasons_not_to_trade", "market_data", "execution"],
   "properties": {
     "schema_version": {"type": "string"},
+    "analysis_id": {"type": ["string", "null"]},
+    "policy": {"type": ["object", "null"]},
     "symbol": {"type": "string", "minLength": 1},
     "exchange": {"type": ["string", "null"]},
     "side": {"enum": ["long", "short", null]},
@@ -19,6 +21,7 @@
     "targets": {"type": "array", "items": {"type": "number"}},
     "reward_to_risk": {"type": "array", "items": {"type": ["number", "null"]}},
     "position_sizing": {"type": ["object", "null"]},
+    "decision_thresholds": {"type": ["object", "null"]},
     "rationale": {"type": "array", "items": {"type": "string"}},
     "risks": {"type": "array", "items": {"type": "string"}},
     "reasons_not_to_trade": {"type": "array", "items": {"type": "string"}},

@@ -1,7 +1,7 @@
 {
   "name": "india-trader",
-  "version": "0.2.0",
-  "description": "India-native trading decision support with standalone NSE/BSE EOD analysis, technicals, regimes, setups, sizing, portfolio risk and strategy review",
+  "version": "0.2.1",
+  "description": "India-native trading decision support with standalone NSE/BSE EOD analysis, explicit strategy policy, decision journaling, technicals, regimes, setups, sizing and portfolio risk",
   "author": {
     "name": "Jai and contributors"
   }

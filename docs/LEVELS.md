@@ -4,7 +4,7 @@ The levels are product boundaries, not maturity theatre. A later level may add c
 
 ## Level 1 — standalone EOD cash-equity analysis (current)
 
-**Goal:** Give the agent only an NSE/BSE cash-equity symbol and receive a reproducible EOD trading decision packet.
+**Goal:** Give the agent only an NSE/BSE cash-equity symbol and receive a reproducible EOD trading decision packet under explicit strategy/risk rules.
 
 ```text
 SYMBOL
@@ -15,13 +15,17 @@ technical snapshot
   ↓
 market regime
   ↓
+versioned / fingerprinted Level 1 policy
+  ↓
 long cash-equity setup / watch / no-trade
   ↓
 entry + invalidation + targets + R:R
   ↓
 optional position sizing
   ↓
-TRADE PACKET
+TRADE PACKET + stable analysis_id
+  ↓
+optional append-only decision journal
 ```
 
 Level 1:
@@ -32,22 +36,38 @@ Level 1:
 - supports `swing` and `positional` horizons only;
 - is EOD decision support, not a live quote feed;
 - derives long-only cash-equity candidates rather than assuming overnight short-selling/product eligibility;
+- keeps strategy/risk thresholds in `Level1Policy` instead of scattered magic constants;
+- records policy id/fingerprint and a stable `analysis_id` in each generated Level 1 packet;
+- can optionally append decisions to a local JSONL journal;
 - never places an order (`execution.allowed=false`).
 
-CLI example:
+CLI examples:
 
 ```bash
 ita analyze RELIANCE --exchange NSE --horizon swing --capital 500000
+ita analyze RELIANCE --policy policies/level1-conservative.json --journal
+ita journal --symbol RELIANCE
 ```
 
 Raw successful bhavcopy downloads are cached locally so repeated analyses do not redownload the same day.
+
+### What “Level 1 complete” means
+
+The **product path** is complete within the EOD boundary: ticker input, legitimate no-login data, technical/regime calculation, explicit policy, deterministic setup/no-setup, trade geometry, optional sizing, structured output, provenance and optional decision history.
+
+It does **not** mean:
+- the bundled policy has established trading alpha;
+- EOD reports are live data;
+- transaction fills are known;
+- corporate actions can be ignored;
+- a Trade Packet is an order.
 
 ### Level 1 limitations
 
 - Official bhavcopy is unadjusted EOD data. Splits, bonuses, rights and exceptional corporate actions must be investigated when they distort the lookback.
 - It cannot answer intraday questions from daily bars.
 - It cannot know the next session's opening gap or fill quality.
-- Setup thresholds are conservative defaults, not universal alpha claims.
+- The bundled policy is a conservative starting policy, not a universal trading system.
 - A Trade Packet is a reviewable candidate, not investment advice or execution authority.
 
 ## Level 2 — authenticated read-only market data (future)
@@ -67,6 +87,8 @@ Likely additions:
 - read-only quotes and depth/microstructure packets;
 - stronger source-authority metadata and provider fallback rules.
 
+A scheduler/monitor harness may wake an agent or request a re-analysis, but a wake is never trade authority: Level 2 must fetch fresh evidence and generate a **new** analysis id/Trade Packet after the event.
+
 **Still out of scope:** order placement. Level 2 is data access, not execution.
 
 ## Level 3 — optional intelligence and control ecosystem (future)
@@ -79,7 +101,8 @@ Possible integrations:
 - **TensorTrade** — optional reinforcement-learning experiments in the strategy lab;
 - **Qlib** — optional ML/research experiments;
 - breadth/relative-strength and portfolio context services;
-- a separate broker execution project after control approval.
+- a separate broker execution project after control approval;
+- an optional OpenTrade-like agent harness for durable sessions/schedules/monitors, kept outside the ITA core.
 
 None of those systems should become a mandatory dependency for Level 1.
 

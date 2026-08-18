@@ -2,9 +2,11 @@
 
 **An open-source, India-native trading decision-support agent for NSE/BSE cash equities.**
 
-ITA turns market evidence and explicit risk constraints into a human-reviewable **Trade Packet**: technical state, regime, setup/no-setup, trigger, invalidation, targets, reward:risk and optional position sizing.
+ITA turns market evidence and explicit strategy/risk rules into a human-reviewable **Trade Packet**: technical state, regime, setup/no-setup, trigger, invalidation, targets, reward:risk and optional position sizing.
 
-> **v0.2 alpha — Level 1 is standalone.** Give it an NSE/BSE cash-equity symbol and it can fetch official daily EOD exchange reports itself. No IFMA install, ProfitPilot install, broker login or API key is required.
+> **v0.2.1 alpha — Level 1 is complete within its stated EOD scope.** Give it an NSE/BSE cash-equity symbol and it can fetch official daily EOD exchange reports itself, apply a versioned/fingerprinted strategy policy, produce a reproducible analysis id, and optionally journal the decision. No IFMA install, ProfitPilot install, broker login or API key is required.
+
+“Complete” here means the standalone Level 1 product path is coherent and testable — **not** that the default strategy has proven alpha or that EOD data is live.
 
 ## One ticker in, a decision packet out
 
@@ -24,13 +26,15 @@ technical snapshot
    ↓
 market regime
    ↓
+versioned Level 1 policy
+   ↓
 setup / watch / no-trade
    ↓
 trigger + stop/invalidation + targets + R:R
    ↓
 optional position sizing
    ↓
-TRADE PACKET
+TRADE PACKET + analysis_id + policy fingerprint
 ```
 
 `execution.allowed` is always `false`. ITA proposes; it does not place orders.
@@ -55,18 +59,70 @@ Level 1 is deliberately narrow enough to be real:
 | Data | Official public daily EOD bhavcopy |
 | Credentials | None |
 | Horizons | Swing / positional |
+| Strategy rules | Explicit `Level1Policy`, JSON-overridable and fingerprinted |
 | Technicals | SMA structure, RSI, momentum, ATR, realised volatility, volume and 20-session levels |
 | Regime | Trend / range / transition + volatility |
 | Automatic setup | Conservative long cash-equity setup, watch or no-trade |
-| Risk | Trigger, invalidation, targets, R multiples, optional stop-based sizing |
+| Risk | Trigger, invalidation, targets, minimum R:R, optional stop-based sizing |
+| Provenance | Stable `analysis_id` + policy id/fingerprint + source/date range |
+| Decision history | Optional append-only JSONL journal |
 | Output | Structured Trade Packet |
 | Execution | **Never** |
 
-The default automatic setup engine is **long-only at Level 1**. Daily cash-equity data does not justify assuming that an overnight short/product is actually available. Analytical bearishness can still be reported as a downtrend, but the deterministic Level 1 pipeline waits for a long reclaim or returns no trade.
+The automatic setup engine is **long-only at Level 1**. Daily cash-equity data does not justify assuming that an overnight short/product is actually available. Analytical bearishness can still be reported as a downtrend, but the deterministic Level 1 pipeline waits for a long reclaim or returns no trade.
+
+### The policy is data, not hidden code
+
+The reviewed default lives at:
+
+```text
+policies/level1-conservative.json
+```
+
+It controls:
+- indicator periods and required history;
+- acceptable EOD age;
+- ATR / RSI / volume eligibility gates;
+- breakout, pullback and trend-reclaim geometry;
+- target R multiples and minimum acceptable R:R;
+- default per-trade risk and maximum position exposure.
+
+Use it directly or copy/edit it:
+
+```bash
+ita analyze RELIANCE --policy policies/level1-conservative.json
+ita analyze RELIANCE --policy ~/my-ita-policy.json
+```
+
+Unknown policy keys fail rather than silently being ignored. Every policy gets a SHA-256 fingerprint and every Level 1 result records the exact policy metadata that produced it.
+
+### Reproducible analysis ids
+
+A Level 1 `analysis_id` is derived from the market evidence, setup/regime output, policy fingerprint and risk inputs. Re-running the **same evidence under the same rules** produces the same id; changing the policy or evidence changes it.
+
+This does not claim markets are deterministic. It makes the *decision inputs* auditable.
+
+### Optional decision journal
+
+To preserve a trader-readable history of what ITA actually said:
+
+```bash
+# Append to the default local JSONL journal
+ita analyze RELIANCE --journal
+
+# Or choose a path
+ita analyze TCS --journal ./my-decisions.jsonl
+
+# Read recent decisions
+ita journal --limit 20
+ita journal --symbol RELIANCE
+```
+
+The journal is append-only decision support. It contains analysis output and provenance, not broker credentials or execution authority.
 
 ### Data provenance
 
-The bundled provider reads the exchange UDiFF-style daily reports and caches successful raw files under:
+The bundled provider reads exchange UDiFF-style daily reports and caches successful raw files under:
 
 ```text
 ~/.cache/indian-trading-agent/bhavcopy/
@@ -96,6 +152,7 @@ A trading assistant that always finds a trade is just a slot machine with excell
 ita analyze RELIANCE
 ita analyze TCS --capital 300000 --risk-percent 0.5 --max-position-percent 15
 ita analyze SBIN --horizon positional --sessions 100
+ita analyze INFY --policy policies/level1-conservative.json --journal
 
 # Deterministic lower-level tools remain available
 ita snapshot examples/hdfcbank_real_2026-08-10.json
@@ -137,13 +194,15 @@ pip install -e '.[mcp]'
 python -m ita.mcp_server
 ```
 
-MCP exposes `analyze_eod_symbol` as well as technicals, sizing, trade planning, portfolio risk and the simple MA research baseline.
+MCP exposes `analyze_eod_symbol` as well as technicals, sizing, trade planning, portfolio risk and the simple MA research baseline. `analyze_eod_symbol` can accept an inline policy object and can optionally record the decision journal. It exposes no order-placement tool.
 
 ## Deterministic toolkit
 
 Core Python has **no mandatory third-party runtime dependencies**.
 
 - `analyze_symbol()` — full Level 1 ticker pipeline
+- `Level1Policy` / `load_level1_policy()` — explicit strategy/risk rules
+- `DecisionJournal` — append-only analysis history
 - `BhavcopyHistoryProvider` — official no-login daily history
 - `technical_snapshot()`
 - `classify_regime()`
@@ -186,7 +245,7 @@ See [`docs/IFMA_INTEGRATION.md`](docs/IFMA_INTEGRATION.md).
 
 The levels are intentionally separated:
 
-- **Level 1 (current):** no-login official EOD cash-equity analysis.
+- **Level 1 (current):** no-login official EOD cash-equity analysis with explicit policy/provenance/journal.
 - **Level 2 (future):** authenticated **read-only** broker/provider data for intraday/fresher evidence; still no execution.
 - **Level 3 (future):** optional IFMA, RiskPilot, TensorTrade/Qlib strategy-lab and other ecosystem integrations.
 
@@ -200,6 +259,14 @@ ITA does **not** import ProfitPilot. Small useful contracts may be independently
 
 See [`docs/PROFITPILOT_CONTRIBUTION_MAP.md`](docs/PROFITPILOT_CONTRIBUTION_MAP.md).
 
+## What we learned from OpenTrade
+
+OpenTrade is a useful reference for the **agent harness around trading**: persistent strategy state, append-only audit, durable scheduling/monitors and action approval boundaries. ITA independently adopts the two Level 1 patterns that belong here—explicit policy and decision provenance/journaling—while leaving scheduling, approvals and brokerage execution outside this repo.
+
+OpenTrade is Elastic License 2.0 while ITA is Apache-2.0, so ITA does **not** copy its source code.
+
+See [`docs/OPENTRADE_LEARNINGS.md`](docs/OPENTRADE_LEARNINGS.md).
+
 ## Historical validation fixture
 
 The repo still includes the earlier real HDFCBANK 50-session fixture through 10 August 2026. It remains useful as a reproducible frozen regression example, but it is no longer the only way to feed ITA: Level 1 can now fetch EOD history from a ticker itself.
@@ -211,10 +278,14 @@ plugin/
   agents/india-trader.md
   commands/
   skills/
+policies/
+  level1-conservative.json
 src/ita/
   marketdata/
     bhavcopy.py
   analyze.py
+  policy.py
+  journal.py
   indicators.py
   regime.py
   setups.py
@@ -227,6 +298,8 @@ src/ita/
   cli.py
   mcp_server.py
 schemas/
+  level1_policy.schema.json
+  trade_packet.schema.json
 examples/
 tests/
 docs/
@@ -234,11 +307,11 @@ docs/
 
 ## Product boundary
 
-**In scope:** decision support, official EOD data, technical state, setups, trade planning, sizing, portfolio exposure, strategy research and review.
+**In scope:** decision support, official EOD data, explicit strategy policy, provenance/journaling, technical state, setups, trade planning, sizing, portfolio exposure, strategy research and review.
 
 **Out of scope:** brokerage login, order placement, unattended execution, custody, personalised compliance approval, guaranteed returns, production-grade tick backtesting and derivatives until the cash-equity workflows are mature.
 
-This repo should not become ProfitPilot-with-a-new-name.
+This repo should not become ProfitPilot-with-a-new-name—or OpenTrade-with-an-India skin.
 
 ## Licence
 
