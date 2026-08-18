@@ -1,5 +1,6 @@
 """Indian Trading Agent deterministic toolkit."""
 
+from .analyze import analyze_symbol
 from .backtest import backtest_ma_crossover
 from .contracts import validate_trade_packet
 from .freshness import assess_data_freshness
@@ -10,6 +11,7 @@ from .risk import position_size, reward_to_risk
 from .tradeplan import build_trade_plan
 
 __all__ = [
+    "analyze_symbol",
     "assess_data_freshness",
     "backtest_ma_crossover",
     "technical_snapshot",
@@ -21,4 +23,4 @@ __all__ = [
     "build_trade_plan",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

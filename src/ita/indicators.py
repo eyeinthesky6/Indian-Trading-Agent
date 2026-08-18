@@ -114,7 +114,9 @@ def technical_snapshot(
 ) -> dict:
     """Return a deterministic technical snapshot.
 
-    The function intentionally describes state; it does not emit a buy/sell recommendation.
+    The function describes state; it does not emit a buy/sell recommendation.
+    Prior-20-session levels exclude the current bar so breakout logic cannot
+    move its own trigger simply because today's bar made a new high/low.
     """
     c = _floats(closes)
     h = [float(v) for v in highs] if highs is not None else None
@@ -149,6 +151,11 @@ def technical_snapshot(
 
     level_high = max(h[-20:]) if h is not None and len(h) >= 20 else (max(c[-20:]) if len(c) >= 20 else None)
     level_low = min(l[-20:]) if l is not None and len(l) >= 20 else (min(c[-20:]) if len(c) >= 20 else None)
+    prior_high = max(h[-21:-1]) if h is not None and len(h) >= 21 else (max(c[-21:-1]) if len(c) >= 21 else None)
+    prior_low = min(l[-21:-1]) if l is not None and len(l) >= 21 else (min(c[-21:-1]) if len(c) >= 21 else None)
+    momentum_5 = pct_change(c, 5)
+    momentum_20 = pct_change(c, 20)
+    realised_vol_20 = realised_volatility(c, 20)
 
     return {
         "latest_close": round(latest, 4),
@@ -157,14 +164,16 @@ def technical_snapshot(
         "trend": trend,
         "rsi": round(rsi_value, 2) if rsi_value is not None else None,
         "rsi_zone": _zone_rsi(rsi_value),
-        "momentum_5d_pct": round(pct_change(c, 5), 2) if pct_change(c, 5) is not None else None,
-        "momentum_20d_pct": round(pct_change(c, 20), 2) if pct_change(c, 20) is not None else None,
-        "realised_vol_20d_pct": round(realised_volatility(c, 20), 2) if realised_volatility(c, 20) is not None else None,
+        "momentum_5d_pct": round(momentum_5, 2) if momentum_5 is not None else None,
+        "momentum_20d_pct": round(momentum_20, 2) if momentum_20 is not None else None,
+        "realised_vol_20d_pct": round(realised_vol_20, 2) if realised_vol_20 is not None else None,
         "atr": round(atr_value, 4) if atr_value is not None else None,
         "atr_pct": round((atr_value / latest) * 100.0, 2) if atr_value is not None else None,
         "volume_vs_20d": round(volume_ratio, 2) if volume_ratio is not None else None,
         "high_20d": round(level_high, 4) if level_high is not None else None,
         "low_20d": round(level_low, 4) if level_low is not None else None,
+        "prior_high_20d": round(prior_high, 4) if prior_high is not None else None,
+        "prior_low_20d": round(prior_low, 4) if prior_low is not None else None,
         "distance_from_20d_high_pct": round((latest / level_high - 1.0) * 100.0, 2) if level_high else None,
         "distance_from_20d_low_pct": round((latest / level_low - 1.0) * 100.0, 2) if level_low else None,
         "observations": len(c),

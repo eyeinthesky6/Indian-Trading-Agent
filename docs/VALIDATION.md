@@ -1,14 +1,41 @@
-# Real-world validation — HDFCBANK
+# Validation
 
 Validation date: 18 August 2026.
 
-## Input
+## Level 1 standalone validation
+
+v0.2 adds a real ticker-driven path:
+
+```text
+symbol -> official NSE/BSE EOD report -> technicals -> regime
+       -> deterministic setup/watch/no-trade -> Trade Packet
+```
+
+The deterministic test suite now verifies that:
+- the market-data parser accepts representative NSE zipped UDiFF and BSE CSV layouts;
+- the same provider works for arbitrary symbols (`RELIANCE`, `TCS`) rather than a hard-coded stock;
+- a ticker-only `analyze_symbol("RELIANCE")` path works without IFMA or ProfitPilot;
+- a downtrend does not become an immediate long merely because a trade was requested;
+- an extreme uptrend can return `no_trade` rather than chase an RSI-100 move;
+- Level 1 rejects an intraday horizon;
+- breakout references use the **prior** 20-session range so a breakout can genuinely trigger;
+- generated packets preserve `execution.allowed=false`.
+
+### Official NSE source check
+
+NSE's public All Reports page lists `CM-UDiFF Common Bhavcopy Final (zip)` and, for 13 July 2026, the exact file `BhavCopy_NSE_CM_0_0_0_20260713_F_0000.csv.zip` (shown as 189.15 KB). The manual smoke test is pinned to that archived file.
+
+An attempted smoke from a GitHub-hosted Azure runner timed out while reading `nsearchives.nseindia.com` after 45 seconds. Installation and all deterministic tests had succeeded; the failure was a network read timeout, not a parser/schema assertion. The provider now converts such timeouts into `MarketDataUnavailable` and the external-network smoke is manual rather than a required CI gate.
+
+This distinction is intentional: deterministic correctness should not depend on whether an exchange archive accepts traffic from a particular cloud IP range.
+
+## Original real-world validation — HDFCBANK
 
 `examples/hdfcbank_real_2026-08-10.json` contains 50 NSE HDFCBANK daily observations from 1 June through 10 August 2026. Values were transcribed from the historical-data table at StockAnalysis.com; that page identifies S&P Global Market Intelligence as the underlying historical-data source and labels the quote as delayed.
 
-This is a **real historical fixture**, not a generated price series.
+This remains a **real historical fixture**, not a generated price series. It is a regression example, not the only input path anymore.
 
-## Technical output
+### Technical output
 
 `ita snapshot` returned:
 
@@ -24,11 +51,9 @@ This is a **real historical fixture**, not a generated price series.
 | ATR 14 | ₹12.6471 / 1.73% |
 | Regime | trending_down |
 
-The output is consistent with the visible price history: the stock had fallen sharply from the July highs and remained below both moving averages.
+### Trade usability test
 
-## Trade usability test
-
-Instead of issuing a current long, the example creates a **conditional trend-reclaim watch**:
+Instead of issuing a current long, the historical example creates a **conditional trend-reclaim watch**:
 
 - current historical close: ₹731
 - trigger/entry zone: ₹758–762, `cross_above_zone`
@@ -43,12 +68,14 @@ Result: `status = watch` because price had not reached the trigger. Sizing retur
 
 The purpose of this fixture is **not** to claim this historical idea made money. It tests whether the software represents a conditional setup correctly.
 
-## Stale-data test
+### Stale-data test
 
 The identical Aug 10 packet is evaluated as-of Aug 18 with a 24-hour clock-age limit. The deterministic result becomes `invalid` with `market data freshness check failed: stale`.
 
-That matters because a separate current source reported HDFC Bank at ₹723.20 on 18 August 2026. ITA correctly refuses to recompute the Aug 10 20/50-session state from that lone new quote; a complete refreshed bar history is needed.
+ITA refuses to recompute a stale 20/50-session state from one new quote; a complete refreshed bar history is needed.
 
-## Test suite
+## CI policy
 
-The initial release runs 17 stdlib unit tests covering indicators/regime, risk sizing, R:R, portfolio concentration, trade geometry, freshness, output contract, plugin alignment and no-look-ahead baseline mechanics.
+- Normal `tests` workflow: deterministic/offline, Python 3.10 and 3.12, required for every PR.
+- `level1-network-smoke`: manual external connectivity diagnostic, not a correctness gate.
+- `python -m compileall -q src` is included in normal CI.

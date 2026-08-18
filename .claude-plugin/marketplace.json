@@ -8,7 +8,7 @@
       "name": "india-trader",
       "displayName": "Indian Trading Agent",
       "source": "./plugin",
-      "description": "India-native trader decision support: technicals, regimes, setups, trade plans, position sizing, portfolio risk, strategy testing and IFMA research bridge"
+      "description": "India-native trading decision support with standalone NSE/BSE EOD data, technicals, regimes, setups, trade plans, sizing, portfolio risk and optional IFMA context"
     }
   ]
 }

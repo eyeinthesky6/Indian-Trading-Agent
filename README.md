@@ -1,101 +1,117 @@
 # Indian Trading Agent 🇮🇳
 
-**An open-source, India-native trading decision-support agent for NSE/BSE markets.**
+**An open-source, India-native trading decision-support agent for NSE/BSE cash equities.**
 
-Indian Trading Agent (ITA) turns fresh market data, technical state, optional IFMA research and explicit risk constraints into a human-reviewable **Trade Packet**. It is designed for traders and trading agents that need disciplined setups, sizing, risk/reward and strategy checks — without hiding assumptions or quietly placing orders.
+ITA turns market evidence and explicit risk constraints into a human-reviewable **Trade Packet**: technical state, regime, setup/no-setup, trigger, invalidation, targets, reward:risk and optional position sizing.
 
-> **Status:** v0.1 alpha. The Claude Code agent/skill pack and deterministic Python tools are usable now. Broker execution is intentionally out of scope.
+> **v0.2 alpha — Level 1 is standalone.** Give it an NSE/BSE cash-equity symbol and it can fetch official daily EOD exchange reports itself. No IFMA install, ProfitPilot install, broker login or API key is required.
+
+## One ticker in, a decision packet out
+
+```bash
+pip install -e .
+ita analyze RELIANCE --exchange NSE --horizon swing --capital 500000
+```
+
+Level 1 runs:
+
+```text
+RELIANCE
+   ↓
+official NSE/BSE daily bhavcopy
+   ↓
+technical snapshot
+   ↓
+market regime
+   ↓
+setup / watch / no-trade
+   ↓
+trigger + stop/invalidation + targets + R:R
+   ↓
+optional position sizing
+   ↓
+TRADE PACKET
+```
+
+`execution.allowed` is always `false`. ITA proposes; it does not place orders.
 
 ## Why this exists
 
 Research and trading are different jobs.
 
-The sibling **Indian Financial Market Analysis Agent (IFMA)** answers questions such as: what changed in earnings, valuation, governance, ownership, macro or the business? ITA answers: **is there a trade here, what has to happen before entry, where is the idea invalid, how much capital is at risk, and what would make us stay out?**
+The sibling **Indian Financial Market Analysis Agent (IFMA)** answers questions such as: what changed in earnings, valuation, governance, ownership, macro or the business?
 
-The projects are deliberately separate so that:
+ITA answers: **is there a trade here, what has to happen before entry, where is the idea invalid, how much capital is at risk, and what would make us stay out?**
 
-- IFMA stays an evidence-first analyst instead of becoming a trading bot;
-- ITA can be useful to technical/systematic traders without requiring full fundamental research;
-- RiskPilot or another control layer can independently approve/reject a trade intent;
-- broker/execution integrations remain isolated from analysis and decision support.
+IFMA is optional context, not a runtime requirement.
 
-## What v0.1 can do
+## Level 1 — current
 
-| Workflow | What ITA does |
+Level 1 is deliberately narrow enough to be real:
+
+| Capability | Level 1 |
 |---|---|
-| **Technical state** | SMA structure, RSI, momentum, ATR, realised volatility, volume context and recent levels |
-| **Market regime** | Trend / range / transition plus volatility state with explicit rationale |
-| **Setup detection** | Breakout, pullback, trend reclaim, mean-reversion and event-gap frameworks with invalidation |
-| **Trade planning** | Conditional trigger, entry zone, stop/invalidation, targets, R multiples and reasons not to trade |
-| **Position sizing** | Stop-distance risk budget plus maximum notional exposure cap |
-| **Portfolio risk** | Gross/net exposure, largest position and sector concentration warnings |
-| **Strategy sanity tests** | A deliberately simple no-look-ahead MA baseline with transaction cost and slippage assumptions |
-| **Freshness gating** | Prevent stale timestamped market data from being treated as actionable |
-| **Trade review** | Separate process quality from outcome; preserve thesis, trigger and invalidation for review |
-| **IFMA bridge** | Consume a loose JSON research packet without taking a runtime dependency on IFMA |
+| Input | NSE/BSE cash-equity symbol |
+| Data | Official public daily EOD bhavcopy |
+| Credentials | None |
+| Horizons | Swing / positional |
+| Technicals | SMA structure, RSI, momentum, ATR, realised volatility, volume and 20-session levels |
+| Regime | Trend / range / transition + volatility |
+| Automatic setup | Conservative long cash-equity setup, watch or no-trade |
+| Risk | Trigger, invalidation, targets, R multiples, optional stop-based sizing |
+| Output | Structured Trade Packet |
+| Execution | **Never** |
 
-## The design
+The default automatic setup engine is **long-only at Level 1**. Daily cash-equity data does not justify assuming that an overnight short/product is actually available. Analytical bearishness can still be reported as a downtrend, but the deterministic Level 1 pipeline waits for a long reclaim or returns no trade.
+
+### Data provenance
+
+The bundled provider reads the exchange UDiFF-style daily reports and caches successful raw files under:
 
 ```text
-Fresh market data                         Optional IFMA research packet
-(NSE/BSE/licensed/user-supplied)          (fundamentals/earnings/macro/etc.)
-           │                                           │
-           └──────────────────┬────────────────────────┘
-                              ↓
-                       India Trader Agent
-                              ↓
-         market data → technicals → regime → setup
-                              ↓
-               trigger + invalidation + targets
-                              ↓
-          deterministic sizing / exposure / R:R tools
-                              ↓
-                       TRADE PACKET
-                  ┌───────────┴───────────┐
-                  ↓                       ↓
-              Human review          RiskPilot / policy layer
-                                          ↓
-                                Separate execution engine
+~/.cache/indian-trading-agent/bhavcopy/
 ```
 
-**ITA never sends the final arrow itself.** `execution.allowed` is hard-coded `false` in its deterministic Trade Packet.
+Override with `ITA_MARKET_DATA_CACHE` or `--cache-dir`.
+
+Every result identifies source, exchange, data range, latest trade date, observation count and adjustment basis.
+
+**EOD is not live.** Level 1 refuses intraday horizons.
 
 ## Trade Packet statuses
 
-ITA treats *not trading* as a first-class outcome:
+Not trading is a first-class result:
 
-- `no_trade` — evidence does not justify a setup;
+- `no_trade` — no coherent Level 1 setup now;
 - `watch` — setup geometry is coherent but the trigger has not happened;
-- `actionable_candidate` — trigger and deterministic gates pass; still requires human/control-layer review;
-- `invalid` — geometry, freshness or another hard requirement fails.
+- `actionable_candidate` — EOD trigger/geometry pass, still pending human/control review;
+- `invalid` — stale data, broken geometry or another hard failure.
 
-A useful trading assistant should often say **wait**. An agent that always finds a trade is just a very articulate slot machine.
+A trading assistant that always finds a trade is just a slot machine with excellent prose.
 
-## Real validation: HDFCBANK
-
-The repository includes a real 50-session HDFCBANK NSE dataset from **1 June–10 August 2026** sourced from StockAnalysis.com, which identifies S&P Global Market Intelligence as its historical-data source.
-
-Running:
+## Quick examples
 
 ```bash
-PYTHONPATH=src python -m ita.cli snapshot examples/hdfcbank_real_2026-08-10.json
+# Standalone Level 1
+ita analyze RELIANCE
+ita analyze TCS --capital 300000 --risk-percent 0.5 --max-position-percent 15
+ita analyze SBIN --horizon positional --sessions 100
+
+# Deterministic lower-level tools remain available
+ita snapshot examples/hdfcbank_real_2026-08-10.json
+ita plan examples/hdfcbank_real_trade_watch_2026-08-10.json
+ita size examples/position_size_input.json
+ita validate examples/hdfcbank_real_trade_watch_output_2026-08-10.json
 ```
 
-produced:
+Run tests:
 
-- close ₹731.00
-- 20-session SMA ₹759.33
-- 50-session SMA ₹773.44
-- RSI 35.22
-- 20-session momentum **-10.63%**
-- ATR 1.73% of price
-- regime: **trending_down**
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+python -m compileall -q src
+```
 
-The example trade is therefore **not a current long**. It is a conditional trend-reclaim watch: only a confirmed move through ₹758–762 activates the candidate. At the historical test timestamp, the tool returns `watch`, not `actionable_candidate`.
-
-The same Aug 10 packet is also run through the freshness gate as of Aug 18. It becomes `invalid` because the market data is stale. See [`docs/VALIDATION.md`](docs/VALIDATION.md).
-
-## Quick start — Claude Code plugin
+## Claude Code plugin
 
 ```bash
 claude plugin marketplace add eyeinthesky6/Indian-Trading-Agent
@@ -112,39 +128,37 @@ Then try:
 /backtest a 20/50 trend filter on this price history, include costs
 ```
 
-The agent must fetch or receive current market data before presenting a setup as current.
+For a cash-equity swing/positional `/trade` request, the agent should use the standalone Level 1 path first. IFMA is only additional research context when relevant/requested.
 
-## Quick start — deterministic Python tools
-
-Core calculations have **no mandatory runtime dependencies beyond Python 3.10+**.
-
-```bash
-pip install -e .
-
-ita snapshot examples/hdfcbank_real_2026-08-10.json
-ita plan examples/hdfcbank_real_trade_watch_2026-08-10.json
-ita size examples/position_size_input.json
-ita validate examples/hdfcbank_real_trade_watch_output_2026-08-10.json
-```
-
-Run the test suite:
-
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
-```
-
-### Optional MCP server
+## Optional MCP server
 
 ```bash
 pip install -e '.[mcp]'
 python -m ita.mcp_server
 ```
 
-The MCP wrapper exposes technical snapshot/regime, position sizing, trade planning, portfolio exposure and the simple MA research baseline.
+MCP exposes `analyze_eod_symbol` as well as technicals, sizing, trade planning, portfolio risk and the simple MA research baseline.
+
+## Deterministic toolkit
+
+Core Python has **no mandatory third-party runtime dependencies**.
+
+- `analyze_symbol()` — full Level 1 ticker pipeline
+- `BhavcopyHistoryProvider` — official no-login daily history
+- `technical_snapshot()`
+- `classify_regime()`
+- `derive_long_swing_setup()`
+- `assess_data_freshness()`
+- `reward_to_risk()`
+- `position_size()`
+- `portfolio_risk_summary()`
+- `build_trade_plan()`
+- `backtest_ma_crossover()`
+- `validate_trade_packet()`
 
 ## Skills included
 
-The first release contains **11 trading skills**:
+The agent has 11 specialist skills:
 
 1. India market data and freshness
 2. technical analysis
@@ -158,37 +172,52 @@ The first release contains **11 trading skills**:
 10. trade review
 11. IFMA research bridge
 
-Skills are Markdown under [`plugin/skills/`](plugin/skills/); the deterministic toolkit lives under [`src/ita/`](src/ita/).
+Skills are Markdown under [`plugin/skills/`](plugin/skills/); deterministic code lives under [`src/ita/`](src/ita/).
 
 ## IFMA integration
 
-ITA does **not** import IFMA. The boundary is a small research packet containing symbol, as-of timestamp, summary, catalysts, risks and optional valuation/fundamental views. That keeps both repos independently installable and prevents research code from quietly leaking into execution logic.
+ITA does **not** import IFMA. IFMA can optionally provide a small timestamped research packet with fundamentals, earnings, catalysts, governance, valuation or macro context.
 
-See [`docs/IFMA_INTEGRATION.md`](docs/IFMA_INTEGRATION.md) and [`schemas/ifma_research_packet.schema.json`](schemas/ifma_research_packet.schema.json).
+A good company can have a poor short-term setup and a weak company can rally. The two systems are deliberately not forced into one bullish/bearish vote.
 
-## Data discipline
+See [`docs/IFMA_INTEGRATION.md`](docs/IFMA_INTEGRATION.md).
 
-- Never call stale delayed data “live”.
-- Every current Trade Packet needs provider/source and timestamp.
-- Corporate actions must be understood before using long historical price series.
-- Do not mix adjusted and unadjusted histories silently.
-- Do not infer a full technical state from a single current quote.
-- Current NSE/BSE rules, sessions, costs, product eligibility and broker behaviour must be checked from current authoritative sources when they matter.
+## What comes later
 
-ITA intentionally ships **no brittle exchange scraper** and **no fake live feed**.
+The levels are intentionally separated:
+
+- **Level 1 (current):** no-login official EOD cash-equity analysis.
+- **Level 2 (future):** authenticated **read-only** broker/provider data for intraday/fresher evidence; still no execution.
+- **Level 3 (future):** optional IFMA, RiskPilot, TensorTrade/Qlib strategy-lab and other ecosystem integrations.
+
+See [`docs/LEVELS.md`](docs/LEVELS.md).
+
+## What ProfitPilot contributes
+
+ProfitPilot already contains years of useful infrastructure lessons: bhavcopy ingestion, canonical OHLCV, instrument mapping, broker historical data, replay/backtest machinery, source-authority ideas and risk/control logic.
+
+ITA does **not** import ProfitPilot. Small useful contracts may be independently extracted when justified; PP risk controls belong in RiskPilot and PP broker execution stays behind a separate execution boundary.
+
+See [`docs/PROFITPILOT_CONTRIBUTION_MAP.md`](docs/PROFITPILOT_CONTRIBUTION_MAP.md).
+
+## Historical validation fixture
+
+The repo still includes the earlier real HDFCBANK 50-session fixture through 10 August 2026. It remains useful as a reproducible frozen regression example, but it is no longer the only way to feed ITA: Level 1 can now fetch EOD history from a ticker itself.
 
 ## Project structure
 
 ```text
-.claude-plugin/marketplace.json
 plugin/
-  .claude-plugin/plugin.json
   agents/india-trader.md
   commands/
   skills/
 src/ita/
+  marketdata/
+    bhavcopy.py
+  analyze.py
   indicators.py
   regime.py
+  setups.py
   freshness.py
   risk.py
   portfolio.py
@@ -205,29 +234,15 @@ docs/
 
 ## Product boundary
 
-**In scope:** decision support, technical state, setups, trade planning, sizing, portfolio exposure, strategy research and review.
+**In scope:** decision support, official EOD data, technical state, setups, trade planning, sizing, portfolio exposure, strategy research and review.
 
-**Out of scope in this repo:** brokerage login, order placement, unattended execution, custody, personalised compliance approval, guaranteed returns, production-grade tick backtesting, options pricing/Greeks and broker-specific margin engines.
+**Out of scope:** brokerage login, order placement, unattended execution, custody, personalised compliance approval, guaranteed returns, production-grade tick backtesting and derivatives until the cash-equity workflows are mature.
 
-Those can be separate adapters/projects when warranted. The repo should not become ProfitPilot-with-a-new-name.
+This repo should not become ProfitPilot-with-a-new-name.
 
-## Open-source posture
+## Licence
 
-Apache-2.0. Fork it, extend it, connect your own licensed data, add sector/setup packs, or use the deterministic tools from another agent.
-
-## Roadmap
-
-Highest-value next steps are adapters and better evidence, not fifty new indicators:
-
-- current licensed/user-provided market-data adapters;
-- Nifty/sector breadth and relative-strength packets;
-- richer walk-forward evaluation and trade-ledger analytics;
-- transaction-cost schedules supplied as versioned data, not magic constants;
-- RiskPilot Trade Intent adapter;
-- optional TensorTrade/Qlib strategy-lab adapters;
-- derivatives pack only after cash-equity workflows are clean.
-
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Apache-2.0. Fork it, extend it, add legitimate provider adapters, build tools on top or use the deterministic functions from another agent.
 
 ## Disclaimer
 
