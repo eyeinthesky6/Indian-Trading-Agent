@@ -22,12 +22,19 @@ def create_server():
         symbol: str,
         exchange: str = "NSE",
         horizon: str = "swing",
-        sessions: int = 80,
+        sessions: int | None = None,
         capital: float | None = None,
-        risk_fraction: float = 0.0075,
-        max_position_fraction: float = 0.20,
+        risk_fraction: float | None = None,
+        max_position_fraction: float | None = None,
+        policy: dict | None = None,
+        record: bool = False,
+        journal_path: str | None = None,
     ) -> dict:
-        """Level 1 standalone EOD analysis; no IFMA or broker login required."""
+        """Level 1 standalone EOD analysis; no IFMA or broker login required.
+
+        Optional `policy` overrides the reviewed Level 1 strategy/risk policy. Set
+        `record=true` to append the decision to the local JSONL audit journal.
+        """
         return analyze_symbol(
             symbol,
             exchange=exchange,
@@ -36,28 +43,75 @@ def create_server():
             capital=capital,
             risk_fraction=risk_fraction,
             max_position_fraction=max_position_fraction,
+            policy=policy,
+            record=record,
+            journal_path=journal_path,
         )
 
     @mcp.tool()
-    def technicals(closes: list[float], highs: list[float] | None = None, lows: list[float] | None = None) -> dict:
+    def technicals(
+        closes: list[float],
+        highs: list[float] | None = None,
+        lows: list[float] | None = None,
+    ) -> dict:
         snap = technical_snapshot(closes, highs, lows)
         return {"snapshot": snap, "regime": classify_regime(snap)}
 
     @mcp.tool()
-    def size_position(capital: float, entry: float, stop: float, risk_fraction: float = 0.01, max_position_fraction: float = 0.25) -> dict:
+    def size_position(
+        capital: float,
+        entry: float,
+        stop: float,
+        risk_fraction: float = 0.01,
+        max_position_fraction: float = 0.25,
+    ) -> dict:
         return position_size(capital, entry, stop, risk_fraction, max_position_fraction)
 
     @mcp.tool()
-    def trade_plan(symbol: str, side: str, current_price: float, entry_low: float, entry_high: float, stop: float, targets: list[float], capital: float | None = None) -> dict:
-        return build_trade_plan(symbol=symbol, side=side, current_price=current_price, entry_low=entry_low, entry_high=entry_high, stop=stop, targets=targets, capital=capital)
+    def trade_plan(
+        symbol: str,
+        side: str,
+        current_price: float,
+        entry_low: float,
+        entry_high: float,
+        stop: float,
+        targets: list[float],
+        capital: float | None = None,
+        min_reward_to_risk: float = 1.5,
+    ) -> dict:
+        return build_trade_plan(
+            symbol=symbol,
+            side=side,
+            current_price=current_price,
+            entry_low=entry_low,
+            entry_high=entry_high,
+            stop=stop,
+            targets=targets,
+            capital=capital,
+            min_reward_to_risk=min_reward_to_risk,
+        )
 
     @mcp.tool()
     def portfolio_risk(capital: float, positions: list[dict]) -> dict:
         return portfolio_risk_summary(capital, positions)
 
     @mcp.tool()
-    def ma_backtest(closes: list[float], fast_period: int = 20, slow_period: int = 50, initial_capital: float = 100000.0, transaction_cost_bps: float = 10.0, slippage_bps: float = 2.0) -> dict:
-        return backtest_ma_crossover(closes, fast_period=fast_period, slow_period=slow_period, initial_capital=initial_capital, transaction_cost_bps=transaction_cost_bps, slippage_bps=slippage_bps)
+    def ma_backtest(
+        closes: list[float],
+        fast_period: int = 20,
+        slow_period: int = 50,
+        initial_capital: float = 100000.0,
+        transaction_cost_bps: float = 10.0,
+        slippage_bps: float = 2.0,
+    ) -> dict:
+        return backtest_ma_crossover(
+            closes,
+            fast_period=fast_period,
+            slow_period=slow_period,
+            initial_capital=initial_capital,
+            transaction_cost_bps=transaction_cost_bps,
+            slippage_bps=slippage_bps,
+        )
 
     return mcp
 
