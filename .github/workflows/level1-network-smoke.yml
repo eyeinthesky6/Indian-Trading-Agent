@@ -1,7 +1,6 @@
 name: level1-network-smoke
 
 on:
-  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -15,7 +14,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -e .
-      - name: Parse real archived NSE UDiFF bhavcopy
+      - name: Parse a real archived NSE UDiFF bhavcopy
         env:
           ITA_NETWORK_SMOKE: "1"
         run: python -m unittest tests.test_level1_network_smoke -v
