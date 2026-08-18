@@ -57,7 +57,7 @@ class Level1MarketDataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as cache:
             provider = BhavcopyHistoryProvider(cache_dir=cache, fetcher=_fake_fetcher)
             history = provider.fetch_symbol_history(
-                "RELIANCE", exchange="NSE", sessions=55, as_of="2026-08-18", max_calendar_days=60
+                "RELIANCE", exchange="NSE", sessions=55, as_of="2026-08-18", max_calendar_days=90
             )
             self.assertEqual(history.symbol, "RELIANCE")
             self.assertEqual(history.exchange, "NSE")
@@ -66,12 +66,13 @@ class Level1MarketDataTests(unittest.TestCase):
             self.assertEqual(history.source_name, "nse_udiff_bhavcopy")
             self.assertLess(history.bars[0].trade_date, history.bars[-1].trade_date)
             self.assertTrue(all(bar.symbol == "RELIANCE" for bar in history.bars))
+            self.assertTrue(all(date.fromisoformat(bar.trade_date).weekday() < 5 for bar in history.bars))
 
     def test_same_provider_handles_another_symbol(self):
         with tempfile.TemporaryDirectory() as cache:
             provider = BhavcopyHistoryProvider(cache_dir=cache, fetcher=_fake_fetcher)
             history = provider.fetch_symbol_history(
-                "TCS", exchange="NSE", sessions=55, as_of="2026-08-18", max_calendar_days=60
+                "TCS", exchange="NSE", sessions=55, as_of="2026-08-18", max_calendar_days=90
             )
             self.assertEqual(history.symbol, "TCS")
             self.assertEqual(len(history.bars), 55)
