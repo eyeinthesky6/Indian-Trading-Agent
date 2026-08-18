@@ -1,5 +1,6 @@
 """Optional MCP wrapper around deterministic Indian Trading Agent tools."""
 
+from .analyze import analyze_symbol
 from .backtest import backtest_ma_crossover
 from .indicators import technical_snapshot
 from .portfolio import portfolio_risk_summary
@@ -15,6 +16,27 @@ def create_server():
         raise RuntimeError("Install the optional MCP dependency: pip install -e '.[mcp]'") from exc
 
     mcp = FastMCP("Indian Trading Agent")
+
+    @mcp.tool()
+    def analyze_eod_symbol(
+        symbol: str,
+        exchange: str = "NSE",
+        horizon: str = "swing",
+        sessions: int = 80,
+        capital: float | None = None,
+        risk_fraction: float = 0.0075,
+        max_position_fraction: float = 0.20,
+    ) -> dict:
+        """Level 1 standalone EOD analysis; no IFMA or broker login required."""
+        return analyze_symbol(
+            symbol,
+            exchange=exchange,
+            horizon=horizon,
+            sessions=sessions,
+            capital=capital,
+            risk_fraction=risk_fraction,
+            max_position_fraction=max_position_fraction,
+        )
 
     @mcp.tool()
     def technicals(closes: list[float], highs: list[float] | None = None, lows: list[float] | None = None) -> dict:
