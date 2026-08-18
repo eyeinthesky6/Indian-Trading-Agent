@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from .contracts import validate_trade_packet
@@ -57,7 +57,7 @@ def _no_trade_packet(*, symbol: str, horizon: str, current_price: float | None, 
         "risks": [],
         "reasons_not_to_trade": [reason],
         "market_data": market_data,
-        "generated_at_utc": datetime.now().astimezone().isoformat(),
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "execution": {
             "allowed": False,
             "note": "Decision-support output only; no broker order is generated or submitted.",
