@@ -100,6 +100,8 @@ def _http_fetch(url: str, referer: str, timeout: float) -> bytes | None:
         if exc.code in {404, 410}:
             return None
         raise MarketDataUnavailable(f"market-data provider returned HTTP {exc.code} for {url}") from exc
+    except TimeoutError as exc:
+        raise MarketDataUnavailable(f"market-data provider timed out for {url}") from exc
     except urllib.error.URLError as exc:
         raise MarketDataUnavailable(f"could not reach market-data provider for {url}: {exc.reason}") from exc
 
