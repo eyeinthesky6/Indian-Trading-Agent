@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indian-trading-agent"
+version = "0.1.0"
+description = "India-native trading decision-support agent and deterministic trading toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Indian Trading Agent contributors"}]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2.0"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+ita = "ita.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

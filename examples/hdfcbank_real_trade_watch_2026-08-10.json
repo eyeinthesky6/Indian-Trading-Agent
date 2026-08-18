@@ -1,0 +1,27 @@
+{
+  "symbol": "HDFCBANK",
+  "side": "long",
+  "current_price": 731.0,
+  "entry_low": 758.0,
+  "entry_high": 762.0,
+  "entry_condition": "cross_above_zone",
+  "stop": 744.0,
+  "targets": [790.0, 820.0],
+  "horizon": "swing",
+  "capital": 500000,
+  "risk_fraction": 0.0075,
+  "max_position_fraction": 0.20,
+  "data_timestamp": "2026-08-10T15:30:00+05:30",
+  "freshness_as_of": "2026-08-10T15:30:00+05:30",
+  "max_data_age_minutes": 60,
+  "data_source": "StockAnalysis.com historical data; underlying source shown as S&P Global Market Intelligence",
+  "setup": "conditional 20-session trend reclaim",
+  "rationale": [
+    "Do not buy while price remains below the falling 20-session and 50-session averages.",
+    "A reclaim of roughly the 20-session average is used as a conditional trigger, not a current buy signal."
+  ],
+  "risks": [
+    "The 20-session trend remains down and 20-session momentum is negative.",
+    "A failed reclaim can reverse quickly; the stop defines invalidation rather than a guaranteed fill or outcome."
+  ]
+}

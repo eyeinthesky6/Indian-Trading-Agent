@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "symbol": "HDFCBANK",
+  "side": "long",
+  "status": "invalid",
+  "horizon": "swing",
+  "setup": "conditional 20-session trend reclaim",
+  "current_price": 731.0,
+  "entry_zone": [758.0, 762.0],
+  "entry_condition": "cross_above_zone",
+  "trigger_state": "waiting",
+  "trigger_note": "wait for a confirmed move above the entry zone",
+  "representative_entry": 760.0,
+  "invalidation_stop": 744.0,
+  "targets": [790.0, 820.0],
+  "reward_to_risk": [1.88, 3.75],
+  "position_sizing": {
+    "quantity": 131,
+    "risk_budget": 3750.0,
+    "risk_per_unit": 16.0,
+    "actual_risk": 2096.0,
+    "actual_risk_pct_capital": 0.419,
+    "position_value": 99560.0,
+    "position_pct_capital": 19.91,
+    "limiting_factor": "exposure_cap",
+    "warnings": []
+  },
+  "rationale": [
+    "Do not buy while price remains below the falling 20-session and 50-session averages.",
+    "A reclaim of roughly the 20-session average is used as a conditional trigger, not a current buy signal."
+  ],
+  "risks": [
+    "The 20-session trend remains down and 20-session momentum is negative.",
+    "A failed reclaim can reverse quickly; the stop defines invalidation rather than a guaranteed fill or outcome."
+  ],
+  "reasons_not_to_trade": ["market data freshness check failed: stale"],
+  "market_data": {
+    "timestamp": "2026-08-10T15:30:00+05:30",
+    "source": "StockAnalysis.com historical data; underlying source shown as S&P Global Market Intelligence",
+    "freshness": {
+      "status": "stale",
+      "actionable": false,
+      "age_minutes": 11520.0,
+      "max_age_minutes": 1440.0,
+      "data_timestamp": "2026-08-10T15:30:00+05:30",
+      "as_of_timestamp": "2026-08-18T10:00:00+00:00",
+      "note": "This is a clock-age check; verify exchange session/calendar context separately."
+    }
+  },
+  "generated_at_utc": "2026-08-18T15:40:09.232979+00:00",
+  "execution": {"allowed": false, "note": "Decision-support output only; no broker order is generated or submitted."}
+}

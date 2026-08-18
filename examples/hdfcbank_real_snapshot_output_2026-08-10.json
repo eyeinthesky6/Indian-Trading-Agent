@@ -1,0 +1,29 @@
+{
+  "technical_snapshot": {
+    "latest_close": 731.0,
+    "sma_fast": 759.3275,
+    "sma_slow": 773.437,
+    "trend": "down",
+    "rsi": 35.22,
+    "rsi_zone": "bearish",
+    "momentum_5d_pct": -2.92,
+    "momentum_20d_pct": -10.63,
+    "realised_vol_20d_pct": 22.29,
+    "atr": 12.6471,
+    "atr_pct": 1.73,
+    "volume_vs_20d": 0.79,
+    "high_20d": 823.7,
+    "low_20d": 728.2,
+    "distance_from_20d_high_pct": -11.25,
+    "distance_from_20d_low_pct": 0.38,
+    "observations": 50,
+    "parameters": {"fast_period": 20, "slow_period": 50, "rsi_period": 14, "atr_period": 14}
+  },
+  "regime": {
+    "regime": "trending_down",
+    "direction": "trending_down",
+    "volatility": "normal",
+    "realised_vol_20d_pct": 22.29,
+    "rationale": ["price/fast/slow averages are negatively ordered", "20-session momentum is -10.63%", "ATR is 1.73% of price"]
+  }
+}
