@@ -35,6 +35,7 @@ def build_trade_plan(
     capital: float | None = None,
     risk_fraction: float = 0.01,
     max_position_fraction: float = 0.25,
+    min_reward_to_risk: float = 1.5,
     data_timestamp: str | None = None,
     data_source: str | None = None,
     freshness_as_of: str | None = None,
@@ -53,6 +54,8 @@ def build_trade_plan(
         raise ValueError("entry_low cannot exceed entry_high")
     if not targets:
         raise ValueError("at least one target is required")
+    if min_reward_to_risk < 0:
+        raise ValueError("min_reward_to_risk must be non-negative")
 
     entry = (float(entry_low) + float(entry_high)) / 2.0
     invalid_reasons: list[str] = []
@@ -73,10 +76,14 @@ def build_trade_plan(
             rr.append(float("nan"))
 
     valid_rr = [x for x in rr if x == x and x > 0]
-    if valid_rr and max(valid_rr) < 1.5:
-        invalid_reasons.append("best target offers less than 1.5R from the midpoint entry")
+    if valid_rr and max(valid_rr) < min_reward_to_risk:
+        invalid_reasons.append(
+            f"best target offers less than {min_reward_to_risk:.2f}R from the midpoint entry"
+        )
 
-    trigger_state, trigger_note = _trigger_state(float(current_price), float(entry_low), float(entry_high), entry_condition)
+    trigger_state, trigger_note = _trigger_state(
+        float(current_price), float(entry_low), float(entry_high), entry_condition
+    )
 
     freshness = None
     if max_data_age_minutes is not None:
@@ -92,8 +99,11 @@ def build_trade_plan(
     sizing = None
     if capital is not None:
         sizing = position_size(
-            capital=float(capital), entry=entry, stop=float(stop),
-            risk_fraction=risk_fraction, max_position_fraction=max_position_fraction,
+            capital=float(capital),
+            entry=entry,
+            stop=float(stop),
+            risk_fraction=risk_fraction,
+            max_position_fraction=max_position_fraction,
         )
 
     if invalid_reasons:
@@ -120,6 +130,7 @@ def build_trade_plan(
         "targets": [round(float(t), 4) for t in targets],
         "reward_to_risk": [round(x, 2) if x == x else None for x in rr],
         "position_sizing": sizing,
+        "decision_thresholds": {"min_reward_to_risk": float(min_reward_to_risk)},
         "rationale": rationale or [],
         "risks": risks or [],
         "reasons_not_to_trade": invalid_reasons,
