@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "indian-trading-agent"
-version = "0.1.0"
-description = "India-native trading decision-support agent and deterministic trading toolkit"
+version = "0.2.0"
+description = "India-native trading decision-support agent with standalone NSE/BSE EOD analysis"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
