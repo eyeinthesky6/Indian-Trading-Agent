@@ -88,7 +88,7 @@ def _http_fetch(url: str, referer: str, timeout: float) -> bytes | None:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "IndianTradingAgent/0.2 (+https://github.com/eyeinthesky6/Indian-Trading-Agent)",
+            "User-Agent": "Mozilla/5.0 (compatible; IndianTradingAgent/0.2; +https://github.com/eyeinthesky6/Indian-Trading-Agent)",
             "Accept": "text/csv,application/zip,application/octet-stream;q=0.9,*/*;q=0.8",
             "Referer": referer,
         },
@@ -260,6 +260,8 @@ class BhavcopyHistoryProvider:
         for offset in range(max_calendar_days):
             current = end_date - timedelta(days=offset)
             attempted += 1
+            if current.weekday() >= 5:
+                continue
             bar = self._bar_for_date(symbol, exchange, current)
             if bar is not None:
                 bars_desc.append(bar)
