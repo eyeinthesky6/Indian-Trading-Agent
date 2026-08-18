@@ -4,14 +4,15 @@ Validation date: 18 August 2026.
 
 ## Level 1 standalone validation
 
-v0.2 adds a real ticker-driven path:
+v0.2.1 validates the complete Level 1 product path:
 
 ```text
 symbol -> official NSE/BSE EOD report -> technicals -> regime
-       -> deterministic setup/watch/no-trade -> Trade Packet
+       -> explicit fingerprinted policy -> setup/watch/no-trade
+       -> Trade Packet + stable analysis_id -> optional decision journal
 ```
 
-The deterministic test suite now verifies that:
+The deterministic test suite verifies that:
 - the market-data parser accepts representative NSE zipped UDiFF and BSE CSV layouts;
 - the same provider works for arbitrary symbols (`RELIANCE`, `TCS`) rather than a hard-coded stock;
 - a ticker-only `analyze_symbol("RELIANCE")` path works without IFMA or ProfitPilot;
@@ -19,13 +20,33 @@ The deterministic test suite now verifies that:
 - an extreme uptrend can return `no_trade` rather than chase an RSI-100 move;
 - Level 1 rejects an intraday horizon;
 - breakout references use the **prior** 20-session range so a breakout can genuinely trigger;
+- the reviewed policy JSON matches the embedded default policy fingerprint;
+- unknown policy fields are rejected rather than silently ignored;
+- changing a policy rule changes its fingerprint and can change the actual trading decision;
+- the same market evidence, policy and risk inputs reproduce the same `analysis_id`;
+- minimum acceptable R:R is explicit/configurable rather than a buried constant;
+- optional journal records can be read back and filtered by symbol;
 - generated packets preserve `execution.allowed=false`.
 
-### Official NSE source check
+The intent is to prove **decision reproducibility and product behavior**, not strategy profitability.
+
+## Why policy/provenance matters
+
+A trading system is not reproducible if its rules live in prompt prose or scattered constants. Level 1 now records:
+- policy name/version;
+- SHA-256 policy fingerprint;
+- market-data source/date range;
+- risk overrides supplied for the run;
+- deterministic `analysis_id` derived from the decision inputs;
+- optional append-only analysis history.
+
+A different policy is deliberately a different experiment. ITA does not silently tune its rules to convert a `no_trade` into a trade.
+
+## Official NSE source check
 
 NSE's public All Reports page lists `CM-UDiFF Common Bhavcopy Final (zip)` and, for 13 July 2026, the exact file `BhavCopy_NSE_CM_0_0_0_20260713_F_0000.csv.zip` (shown as 189.15 KB). The manual smoke test is pinned to that archived file.
 
-An attempted smoke from a GitHub-hosted Azure runner timed out while reading `nsearchives.nseindia.com` after 45 seconds. Installation and all deterministic tests had succeeded; the failure was a network read timeout, not a parser/schema assertion. The provider now converts such timeouts into `MarketDataUnavailable` and the external-network smoke is manual rather than a required CI gate.
+An attempted smoke from a GitHub-hosted Azure runner timed out while reading `nsearchives.nseindia.com` after 45 seconds. Installation and all deterministic tests had succeeded; the failure was a network read timeout, not a parser/schema assertion. The provider converts such timeouts into `MarketDataUnavailable` and the external-network smoke is manual rather than a required CI gate.
 
 This distinction is intentional: deterministic correctness should not depend on whether an exchange archive accepts traffic from a particular cloud IP range.
 
@@ -73,6 +94,15 @@ The purpose of this fixture is **not** to claim this historical idea made money.
 The identical Aug 10 packet is evaluated as-of Aug 18 with a 24-hour clock-age limit. The deterministic result becomes `invalid` with `market data freshness check failed: stale`.
 
 ITA refuses to recompute a stale 20/50-session state from one new quote; a complete refreshed bar history is needed.
+
+## OpenTrade research validation
+
+OpenTrade was reviewed as an architecture reference, not as a code donor. Its useful patterns for Level 1 were translated independently into:
+- explicit user/repository-owned strategy policy;
+- durable decision provenance/audit;
+- strict read-only vs action boundary.
+
+Its scheduler, approval gate, brokerage lifecycle, desktop runtime and other execution/harness code remain outside Level 1. See [`OPENTRADE_LEARNINGS.md`](OPENTRADE_LEARNINGS.md).
 
 ## CI policy
 
