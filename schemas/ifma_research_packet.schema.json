@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IFMA Research Packet for ITA",
+  "type": "object",
+  "required": ["symbol", "as_of", "summary", "risks"],
+  "properties": {
+    "symbol": {"type": "string"},
+    "as_of": {"type": "string"},
+    "summary": {"type": "string"},
+    "catalysts": {"type": "array", "items": {"type": "string"}},
+    "risks": {"type": "array", "items": {"type": "string"}},
+    "fundamental_view": {"type": ["string", "null"]},
+    "valuation_view": {"type": ["string", "null"]},
+    "governance_view": {"type": ["string", "null"]},
+    "macro_context": {"type": ["string", "null"]},
+    "sources": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

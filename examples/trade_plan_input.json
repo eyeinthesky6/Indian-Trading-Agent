@@ -1,0 +1,18 @@
+{
+  "symbol": "EXAMPLE",
+  "side": "long",
+  "current_price": 1000,
+  "entry_low": 990,
+  "entry_high": 1005,
+  "stop": 960,
+  "targets": [1060, 1100],
+  "horizon": "swing",
+  "capital": 500000,
+  "risk_fraction": 0.0075,
+  "max_position_fraction": 0.20,
+  "data_timestamp": "replace-with-current-market-timestamp",
+  "data_source": "user-or-licensed-market-data",
+  "setup": "breakout-retest",
+  "rationale": ["example only"],
+  "risks": ["example only"]
+}

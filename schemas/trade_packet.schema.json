@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/ita/trade_packet.schema.json",
+  "title": "ITA Trade Packet",
+  "type": "object",
+  "required": ["schema_version", "symbol", "status", "horizon", "reasons_not_to_trade", "market_data", "execution"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "symbol": {"type": "string", "minLength": 1},
+    "exchange": {"type": ["string", "null"]},
+    "side": {"enum": ["long", "short", null]},
+    "status": {"enum": ["no_trade", "watch", "actionable_candidate", "invalid"]},
+    "horizon": {"type": "string"},
+    "setup": {"type": ["string", "null"]},
+    "current_price": {"type": ["number", "null"]},
+    "entry_zone": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+    "entry_condition": {"enum": ["within_zone", "cross_above_zone", "cross_below_zone", null]},
+    "invalidation_stop": {"type": ["number", "null"]},
+    "targets": {"type": "array", "items": {"type": "number"}},
+    "reward_to_risk": {"type": "array", "items": {"type": ["number", "null"]}},
+    "position_sizing": {"type": ["object", "null"]},
+    "rationale": {"type": "array", "items": {"type": "string"}},
+    "risks": {"type": "array", "items": {"type": "string"}},
+    "reasons_not_to_trade": {"type": "array", "items": {"type": "string"}},
+    "market_data": {"type": "object", "properties": {"timestamp": {"type": ["string", "null"]}, "source": {"type": ["string", "null"]}, "freshness": {"type": ["object", "null"]}}},
+    "execution": {"type": "object", "required": ["allowed"], "properties": {"allowed": {"const": false}, "note": {"type": "string"}}}
+  },
+  "additionalProperties": true
+}

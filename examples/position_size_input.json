@@ -1,0 +1,8 @@
+{
+  "capital": 500000,
+  "entry": 1500,
+  "stop": 1455,
+  "risk_fraction": 0.0075,
+  "max_position_fraction": 0.20,
+  "lot_size": 1
+}

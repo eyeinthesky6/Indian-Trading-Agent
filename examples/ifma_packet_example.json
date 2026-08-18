@@ -1,0 +1,10 @@
+{
+  "symbol": "HDFCBANK",
+  "as_of": "2026-08-10T18:00:00+05:30",
+  "summary": "Example contract only — replace with a real IFMA output.",
+  "catalysts": [],
+  "risks": ["Example only; no live IFMA research embedded in this fixture."],
+  "fundamental_view": null,
+  "valuation_view": null,
+  "sources": []
+}

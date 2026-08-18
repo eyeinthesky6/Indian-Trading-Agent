@@ -1,0 +1,8 @@
+{
+  "name": "india-trader",
+  "version": "0.1.0",
+  "description": "India-native trading decision support: technicals, regimes, setups, trade plans, sizing, portfolio risk, strategy testing and trade review",
+  "author": {
+    "name": "Jai and contributors"
+  }
+}

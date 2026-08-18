@@ -1,0 +1,14 @@
+{
+  "name": "indian-trading-agent",
+  "owner": {
+    "name": "Jai and contributors"
+  },
+  "plugins": [
+    {
+      "name": "india-trader",
+      "displayName": "Indian Trading Agent",
+      "source": "./plugin",
+      "description": "India-native trader decision support: technicals, regimes, setups, trade plans, position sizing, portfolio risk, strategy testing and IFMA research bridge"
+    }
+  ]
+}
